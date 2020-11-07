@@ -3,6 +3,7 @@ from unityagents import UnityEnvironment
 
 
 def watch_episode(env: UnityEnvironment, agent: Agent):
+    agent.set_train_mode(False)
     brain_name = env.brain_names[0]
     env_info = env.reset(train_mode=False)[brain_name]
     state = env_info.vector_observations[0]
