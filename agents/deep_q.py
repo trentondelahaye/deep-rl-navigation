@@ -3,7 +3,7 @@ import random
 import torch
 
 from .base import Agent
-from networks.q_network import QNetwork
+from agents.networks.q_network import QNetwork
 
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
