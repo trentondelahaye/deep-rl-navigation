@@ -1,6 +1,9 @@
 import agents
 import click
 import logging
+import numpy as np
+import random
+import torch
 
 from unityagents import UnityEnvironment
 from watch_agent import watch_episode
@@ -37,6 +40,10 @@ def main(unity_env, agent):
     env = load_env(unity_env)
     agent = load_agent(env, agent)
     to_exit = False
+
+    np.random.seed(0)
+    random.seed(0)
+    torch.manual_seed(0)
 
     while not to_exit:
         command = input("Input command: ").lower()
