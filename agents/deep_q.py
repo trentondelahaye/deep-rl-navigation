@@ -10,7 +10,8 @@ from agents.networks.q_network import QNetwork
 from torch.nn.functional import mse_loss
 from torch.optim import Adam
 
-from .base import Agent, Experiences, ReplayBuffer, PrioritisedReplayBuffer
+from .base import Agent, Experiences
+from .replay_buffers import PrioritisedReplayBuffer, ReplayBuffer
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
