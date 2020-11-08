@@ -1,7 +1,7 @@
 import random
 from abc import ABC
 from configparser import ConfigParser
-from typing import Dict, Any
+from typing import Any, Dict
 
 import numpy as np
 
@@ -10,7 +10,7 @@ from agents.networks.q_network import QNetwork
 from torch.nn.functional import mse_loss
 from torch.optim import Adam
 
-from .base import Agent, Experiences, ReplayBuffer
+from .base import Agent, Experiences, ReplayBuffer, PrioritisedReplayBuffer
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -32,6 +32,7 @@ class BaseDeepQAgent(Agent, ABC):
 
         # Q learning params
         self.epsilon = 1.0
+        self.t_step = 0
         self.epsilon_decay = epsilon_decay
         self.min_epsilon = min_epsilon
         self.gamma = gamma
@@ -39,6 +40,7 @@ class BaseDeepQAgent(Agent, ABC):
         # replay buffer params
         self.buffer_size = buffer_size
         self.batch_size = batch_size
+        self.memory = ReplayBuffer(self.buffer_size, self.batch_size)
 
         # neural network update params
         self.update_every = update_every
@@ -46,6 +48,8 @@ class BaseDeepQAgent(Agent, ABC):
         self.lr = lr
 
         self.q_network = QNetwork(self.state_size, self.action_size)
+        self.target_q_network = QNetwork(self.state_size, self.action_size)
+        self.optimizer = Adam(self.q_network.parameters(), lr=self.lr)
 
     # noinspection PyArgumentList
     @classmethod
@@ -80,6 +84,47 @@ class BaseDeepQAgent(Agent, ABC):
         else:
             return random.choice(np.arange(self.action_size))
 
+    def step(
+        self,
+        state: np.ndarray,
+        action: int,
+        reward: float,
+        next_state: np.ndarray,
+        done: bool,
+    ):
+        self.memory.add_experience(state, action, reward, next_state, done)
+
+        self.t_step = (self.t_step + 1) % self.update_every
+        if self.t_step == 0 and len(self.memory) > self.memory.batch_size:
+            experiences = self.memory.sample_experiences()
+            self._learn(experiences)
+
+    def _learn(self, experiences: Experiences) -> float:
+        states, actions, rewards, next_states, dones = experiences
+
+        q_targets_next = (
+            self.target_q_network(next_states).detach().max(1)[0].unsqueeze(1)
+        )
+        q_targets = rewards + (self.gamma * q_targets_next * (1 - dones))
+        q_expected = self.q_network(states).gather(1, actions)
+
+        loss = mse_loss(q_expected, q_targets)
+
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+
+        self._soft_update()
+        return float(loss)
+
+    def _soft_update(self):
+        for target_param, param in zip(
+            self.target_q_network.parameters(), self.q_network.parameters()
+        ):
+            target_param.data.copy_(
+                self.tau * param.data + (1.0 - self.tau) * target_param.data
+            )
+
 
 class DeepQAgent(BaseDeepQAgent):
     def __init__(
@@ -89,11 +134,20 @@ class DeepQAgent(BaseDeepQAgent):
     ):
         super().__init__(*args, **kwargs)
 
-        self.target_q_network = QNetwork(self.state_size, self.action_size).to(device)
-        self.optimizer = Adam(self.q_network.parameters(), lr=self.lr)
+    @classmethod
+    def from_config(cls, config: ConfigParser, state_size: int, action_size: int):
+        base_config_params = cls._get_base_config_params(config)
+        return cls(state_size, action_size, **base_config_params)
 
-        self.memory = ReplayBuffer(self.buffer_size, self.batch_size)
-        self.t_step = 0
+
+class PrioritisedDeepQAgent(BaseDeepQAgent):
+    def __init__(
+        self,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self.memory = PrioritisedReplayBuffer(self.buffer_size, self.batch_size)
 
     @classmethod
     def from_config(cls, config: ConfigParser, state_size: int, action_size: int):
@@ -113,29 +167,5 @@ class DeepQAgent(BaseDeepQAgent):
         self.t_step = (self.t_step + 1) % self.update_every
         if self.t_step == 0 and len(self.memory) > self.memory.batch_size:
             experiences = self.memory.sample_experiences()
-            self._learn(experiences)
-
-    def _learn(self, experiences: Experiences):
-        states, actions, rewards, next_states, dones = experiences
-
-        q_targets_next = (
-            self.target_q_network(next_states).detach().max(1)[0].unsqueeze(1)
-        )
-        q_targets = rewards + (self.gamma * q_targets_next * (1 - dones))
-        q_expected = self.q_network(states).gather(1, actions)
-
-        loss = mse_loss(q_expected, q_targets)
-
-        self.optimizer.zero_grad()
-        loss.backward()
-        self.optimizer.step()
-
-        self._soft_update()
-
-    def _soft_update(self):
-        for target_param, param in zip(
-            self.target_q_network.parameters(), self.q_network.parameters()
-        ):
-            target_param.data.copy_(
-                self.tau * param.data + (1.0 - self.tau) * target_param.data
-            )
+            loss = self._learn(experiences)
+            self.memory.update_priorities(loss + 1e-5)
