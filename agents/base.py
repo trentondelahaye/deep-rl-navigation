@@ -2,7 +2,7 @@ import configparser
 import random
 from abc import ABC, abstractmethod
 from collections import deque
-from typing import NamedTuple, Tuple
+from typing import Iterable, NamedTuple, Tuple
 
 import numpy as np
 
@@ -78,7 +78,7 @@ class ReplayBuffer:
 
     # noinspection PyTypeChecker
     def sample_experiences(self) -> Experiences:
-        experiences = random.sample(self.memory, k=self.batch_size)
+        experiences = self._sample()
         return tuple(
             (
                 torch.from_numpy(
@@ -88,5 +88,26 @@ class ReplayBuffer:
             for field in Experience._fields
         )
 
+    def _sample(self) -> Iterable[Experience]:
+        return random.sample(self.memory, k=self.batch_size)
+
     def __len__(self):
         return len(self.memory)
+
+
+class PrioritisedReplayBuffer(ReplayBuffer):
+    def __init__(self, buffer_size: int, batch_size: int):
+        super().__init__(buffer_size, batch_size)
+        self.priorities = np.ones((buffer_size,), dtype=np.float32)
+        self._last_indices = np.array([])
+
+    def _sample(self):
+        probabilities = self.priorities[: len(self.memory)]
+        probabilities /= probabilities.sum()
+        indices = np.random.choice(len(self.memory), self.batch_size, p=probabilities)
+        self._last_indices = indices
+        return [self.memory[idx] for idx in indices]
+
+    def update_priorities(self, loss: float):
+        for idx in self._last_indices:
+            self.priorities[idx] = loss
