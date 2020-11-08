@@ -2,7 +2,7 @@ from agents.base import Agent
 from unityagents import UnityEnvironment
 
 
-def watch_episode(env: UnityEnvironment, agent: Agent):
+def watch_episode(env: UnityEnvironment, agent: Agent, **kwargs):
     agent.set_train_mode(False)
     brain_name = env.brain_names[0]
     env_info = env.reset(train_mode=False)[brain_name]

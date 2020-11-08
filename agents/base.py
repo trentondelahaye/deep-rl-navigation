@@ -1,20 +1,20 @@
-from typing import Tuple
+import configparser
+import random
+from abc import ABC, abstractmethod
+from collections import deque
+from typing import NamedTuple, Tuple
 
 import numpy as np
-import random
+
 import torch
-
-from abc import abstractmethod
-from collections import deque
-
-from typing import NamedTuple
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 States = Actions = Rewards = NextStates = Dones = torch.Tensor
+Experiences = Tuple[States, Actions, Rewards, NextStates, Dones]
 
 
-class Agent:
+class Agent(ABC):
     def __init__(self, state_size: int, action_size: int):
         self.state_size = state_size
         self.action_size = action_size
@@ -27,18 +27,35 @@ class Agent:
     def act(self, state: np.ndarray) -> int:
         pass
 
+    @abstractmethod
+    def step(
+        self,
+        state: np.ndarray,
+        action: int,
+        reward: float,
+        next_state: np.ndarray,
+        done: bool,
+    ):
+        pass
+
+    @classmethod
+    @abstractmethod
+    def from_config(
+        cls, config: configparser.SectionProxy, state_size: int, action_size: int
+    ):
+        pass
+
 
 class Experience(NamedTuple):
     state: np.ndarray
     action: int
-    reward: float
+    reward: np.float32
     next_state: np.ndarray
-    done: bool
+    done: np.float32
 
 
 class ReplayBuffer:
-    def __init__(self, action_size: int, buffer_size: int, batch_size: int):
-        self.action_size = action_size
+    def __init__(self, buffer_size: int, batch_size: int):
         self.memory = deque(maxlen=buffer_size)
         self.batch_size = batch_size
 
@@ -50,19 +67,23 @@ class ReplayBuffer:
         next_state: np.ndarray,
         done: bool,
     ):
-        experience = Experience(state, action, reward, next_state, done)
+        experience = Experience(
+            state.astype(np.float32),
+            action,
+            np.float32(reward),
+            next_state.astype(np.float32),
+            np.float32(done),
+        )
         self.memory.append(experience)
 
     # noinspection PyTypeChecker
-    def sample_experiences(self) -> Tuple[States, Actions, Rewards, NextStates, Dones]:
+    def sample_experiences(self) -> Experiences:
         experiences = random.sample(self.memory, k=self.batch_size)
         return tuple(
             (
                 torch.from_numpy(
-                    np.vstack([getattr(e, field) for e in experiences if e is not None])
-                )
-                .float()
-                .to(device)
+                    np.vstack([getattr(e, field) for e in experiences])
+                ).to(device)
             )
             for field in Experience._fields
         )

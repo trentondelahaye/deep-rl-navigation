@@ -1,57 +1,49 @@
-import agents
-import click
 import logging
-import numpy as np
 import random
-import torch
 
-from unityagents import UnityEnvironment
-from watch_agent import watch_episode
+import click
+import numpy as np
+
+import torch
+from load import build_commands, build_kwargs, load_agent, load_env
+from train import AgentTrainer
 
 log = logging.getLogger()
-
-COMMAND_TO_FUNC = {
-    "exit": lambda *args: True,
-    "watch": watch_episode,
-}
-
-
-def load_env(env_path: str) -> UnityEnvironment:
-    return UnityEnvironment(file_name=env_path)
-
-
-def load_agent(env: UnityEnvironment, agent_name: str) -> agents.Agent:
-    brain_name = env.brain_names[0]
-    brain = env.brains[brain_name]
-
-    action_size = brain.vector_action_space_size
-    state_size = brain.vector_observation_space_size
-
-    try:
-        return getattr(agents, agent_name)(state_size, action_size)
-    except AttributeError:
-        raise Exception("Unrecognised agent")
 
 
 @click.command()
 @click.option("--unity-env", default="./Banana.app", help="Path to UnityEnvironment")
-@click.option("--agent", default="RandomAgent", help="Name of agent to run")
-def main(unity_env, agent):
-    env = load_env(unity_env)
-    agent = load_agent(env, agent)
-    to_exit = False
+@click.option(
+    "--agent-cfg", default="Random", help="Section of config used to load agent"
+)
+@click.option(
+    "--no-graphics/--graphics", default=False, help="Load environment without graphics"
+)
+def main(unity_env, agent_cfg, no_graphics):
+    env = load_env(unity_env, no_graphics)
+    agent = load_agent(env, agent_cfg)
+
+    #  TODO: get this information for environments other than banana brain,
+    #   currently not done as to not clutter the click options
+    trainer = AgentTrainer(score_window_size=100, score_threshold=13.0)
+
+    command_to_func = build_commands(trainer)
 
     np.random.seed(0)
     random.seed(0)
     torch.manual_seed(0)
 
+    to_exit = False
+
     while not to_exit:
-        command = input("Input command: ").lower()
-        if command not in COMMAND_TO_FUNC:
-            log.info(f"Unrecognised command, select from {set(COMMAND_TO_FUNC.keys())}")
+        inputs = input("\nInput command: ").lower().split(" ")
+        command = inputs[0]
+        if command not in command_to_func:
+            log.info(f"Unrecognised command, select from {set(command_to_func.keys())}")
             continue
-        func = COMMAND_TO_FUNC[command]
-        to_exit = func(env, agent)
+        func = command_to_func[command]
+        kwargs = build_kwargs(inputs[1:])
+        to_exit = func(env, agent, **kwargs)
 
     env.close()
 

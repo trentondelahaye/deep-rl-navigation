@@ -1,8 +1,8 @@
+from typing import Iterable
+
 import torch
 import torch.nn as nn
-
 from torch.nn.functional import leaky_relu
-from typing import Iterable
 
 LayerSize = int
 
@@ -12,17 +12,19 @@ class QNetwork(nn.Module):
         self,
         state_size: int,
         action_size: int,
-        seed: int = 0,
         fc_layers: Iterable[LayerSize] = (64, 64),
     ):
         super().__init__()
-        self.seed = torch.manual_seed(seed)
 
         layer_sizes = [state_size] + list(fc_layers) + [action_size]
-        self.fc_layers = [
-            nn.Linear(input_size, output_size)
-            for input_size, output_size in zip(layer_sizes, layer_sizes[1:])
-        ]
+        self.fc_layers = []
+
+        for i, (input_size, output_size) in enumerate(
+            zip(layer_sizes, layer_sizes[1:])
+        ):
+            layer = nn.Linear(input_size, output_size)
+            setattr(self, f"fc{i}", layer)
+            self.fc_layers.append(layer)
 
     @property
     def last_layer(self) -> nn.Linear:
