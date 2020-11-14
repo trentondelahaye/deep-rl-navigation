@@ -37,11 +37,11 @@ class Agent(ABC):
         pass
 
     @abstractmethod
-    def save(self, *args, filename: str = ""):
+    def save(self, *args, filename: str = "", **kwargs):
         pass
 
     @abstractmethod
-    def load(self, *args, filename: str = ""):
+    def load(self, *args, filename: str = "", **kwargs):
         pass
 
     @classmethod

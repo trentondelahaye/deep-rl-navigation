@@ -56,7 +56,7 @@ class BaseDeepQAgent(Agent, ABC):
         self.target_q_network = QNetwork(self.state_size, self.action_size)
         self.optimizer = Adam(self.q_network.parameters(), lr=self.lr)
 
-    def save(self, *args, filename: str = ""):
+    def save(self, *args, filename: str = "", **kwargs):
         if not len(filename):
             log.warning("Please provide a filename")
             return
@@ -70,7 +70,7 @@ class BaseDeepQAgent(Agent, ABC):
         }
         torch.save(state, path)
 
-    def load(self, *args, filename: str = ""):
+    def load(self, *args, filename: str = "", **kwargs):
         if not len(filename):
             log.warning("Please provide a filename")
             return

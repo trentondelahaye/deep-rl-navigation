@@ -1,3 +1,4 @@
+import inspect
 import logging
 import random
 
@@ -5,7 +6,7 @@ import click
 import numpy as np
 
 import torch
-from load import build_commands, build_kwargs, load_agent, load_env
+from load import KwargError, build_commands, build_kwargs, load_agent, load_env
 from train import AgentTrainer
 
 log = logging.getLogger()
@@ -41,8 +42,25 @@ def main(unity_env, agent_cfg, no_graphics):
         if command not in command_to_func:
             log.info(f"Unrecognised command, select from {set(command_to_func.keys())}")
             continue
+
         func = command_to_func[command]
-        kwargs = build_kwargs(inputs[1:])
+        sig = inspect.signature(func)
+
+        if any(arg == "--help" for arg in inputs):
+            print("Valid kwargs")
+            for param in sig.parameters.values():
+                if param.default is not param.empty:
+                    print(
+                        f"{param.name}: {type(param.default).__name__} = {param.default}"
+                    )
+            continue
+
+        try:
+            kwargs = build_kwargs(inputs[1:], sig)
+        except KwargError as e:
+            log.warning(e)
+            continue
+
         to_exit = func(env, agent, **kwargs)
 
     env.close()

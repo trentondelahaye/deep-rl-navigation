@@ -1,5 +1,6 @@
+import inspect
 from configparser import ConfigParser
-from typing import Callable, Dict, List, Union
+from typing import Any, Callable, Dict, List, Union
 
 import agents
 from agents import Agent
@@ -47,24 +48,45 @@ def build_commands(trainer: AgentTrainer, agent: Agent) -> Dict[str, Callable]:
     }
 
 
-def process_kwarg(key: str, value: str) -> Union[int, float, bool, str]:
-    if value.isdigit():
-        return int(value)
-    elif value.isnumeric():
-        return float(value)
-    elif value in {"True", "true", "T", "t"}:
-        return True
-    elif value in {"False", "false", "F", "f"}:
-        return False
-    # Explicit allowed string types
-    elif key in {"filename"}:
-        return value
-    raise ValueError(f"Unknown param type {key}={value}")
+class KwargError(BaseException):
+    pass
 
 
-def build_kwargs(raw_kwargs: List[str]) -> Dict[str, str]:
-    return {
-        key: process_kwarg(key, value)
-        for kwarg in raw_kwargs
-        for key, value in [kwarg.split("=")]
-    }
+def build_kwargs(raw_kwargs: List[str], sig: inspect.Signature) -> Dict[str, Any]:
+    kwargs = {}
+    for kwarg in raw_kwargs:
+        try:
+            key, value = kwarg.split("=")
+        except ValueError:
+            raise KwargError(f"Please format kwarg {kwarg} like key=value")
+
+        try:
+            param = sig.parameters[key]
+        except KeyError:
+            raise KwargError(f"Unrecognised kwarg {key}")
+
+        if param.default is param.empty:
+            raise KwargError(f"Setting positional argument {key}")
+
+        try:
+            param_type = type(param.default)
+            if param_type == bool:
+                if value.lower() in {"true", "t"}:
+                    value = True
+                elif value.lower() in {"false", "f"}:
+                    value = False
+                else:
+                    raise KwargError(
+                        f"Unable to convert type for kwarg {kwarg}"
+                        f" inferred type: {type(param.default).__name__}"
+                    )
+            else:
+                value = type(param.default)(value)
+        except ValueError:
+            raise KwargError(
+                f"Unable to convert type for kwarg {kwarg}"
+                f" inferred type: {type(param.default).__name__}"
+            )
+        kwargs[key] = value
+
+    return kwargs

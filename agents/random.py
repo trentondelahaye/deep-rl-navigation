@@ -12,10 +12,10 @@ class RandomAgent(Agent):
     def step(self, *args):
         pass
 
-    def save(self, *args, filename: str = ""):
+    def save(self, *args, filename: str = "", **kwargs):
         pass
 
-    def load(self, *args, filename: str = ""):
+    def load(self, *args, filename: str = "", **kwargs):
         pass
 
     @classmethod
