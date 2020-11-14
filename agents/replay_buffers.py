@@ -70,6 +70,6 @@ class PrioritisedReplayBuffer(ReplayBuffer):
         self._last_indices = indices
         return [self.memory[idx] for idx in indices]
 
-    def update_priorities(self, loss: float):
-        for idx in self._last_indices:
-            self.priorities[idx] = loss
+    def update_priorities(self, loss: torch.Tensor):
+        for loss_idx, priority_idx in enumerate(self._last_indices):
+            self.priorities[priority_idx] = float(loss[loss_idx]) + 1e-5

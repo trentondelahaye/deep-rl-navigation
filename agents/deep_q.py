@@ -100,7 +100,7 @@ class BaseDeepQAgent(Agent, ABC):
             experiences = self.memory.sample_experiences()
             self._learn(experiences)
 
-    def _learn(self, experiences: Experiences) -> float:
+    def _learn(self, experiences: Experiences) -> torch.Tensor:
         states, actions, rewards, next_states, dones = experiences
 
         q_targets_next = (
@@ -109,14 +109,15 @@ class BaseDeepQAgent(Agent, ABC):
         q_targets = rewards + (self.gamma * q_targets_next * (1 - dones))
         q_expected = self.q_network(states).gather(1, actions)
 
-        loss = mse_loss(q_expected, q_targets)
+        pointwise_loss = mse_loss(q_expected, q_targets, reduce=False)
+        loss = torch.mean(pointwise_loss)
 
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
 
         self._soft_update()
-        return float(loss)
+        return pointwise_loss
 
     def _soft_update(self):
         for target_param, param in zip(
@@ -169,4 +170,4 @@ class PrioritisedDeepQAgent(BaseDeepQAgent):
         if self.t_step == 0 and len(self.memory) > self.memory.batch_size:
             experiences = self.memory.sample_experiences()
             loss = self._learn(experiences)
-            self.memory.update_priorities(loss + 1e-5)
+            self.memory.update_priorities(loss)
