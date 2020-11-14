@@ -1,6 +1,6 @@
 import inspect
 from configparser import ConfigParser
-from typing import Any, Callable, Dict, List, Union
+from typing import Any, Callable, Dict, List
 
 import agents
 from agents import Agent

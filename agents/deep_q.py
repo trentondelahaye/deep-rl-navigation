@@ -3,7 +3,7 @@ import os
 import random
 from abc import ABC
 from configparser import ConfigParser
-from typing import Any, Dict
+from typing import Any, Dict, Iterable
 
 import numpy as np
 
@@ -32,6 +32,7 @@ class BaseDeepQAgent(Agent, ABC):
         update_every: int = 4,
         tau: float = 1e-3,
         lr: float = 5e-4,
+        fc_layers: Iterable = (64, 64),
     ):
         super().__init__(*args)
 
@@ -51,9 +52,12 @@ class BaseDeepQAgent(Agent, ABC):
         self.update_every = update_every
         self.tau = tau
         self.lr = lr
+        self.fc_layers = fc_layers
 
-        self.q_network = QNetwork(self.state_size, self.action_size)
-        self.target_q_network = QNetwork(self.state_size, self.action_size)
+        self.q_network = QNetwork(self.state_size, self.action_size, self.fc_layers)
+        self.target_q_network = QNetwork(
+            self.state_size, self.action_size, self.fc_layers
+        )
         self.optimizer = Adam(self.q_network.parameters(), lr=self.lr)
 
     def save(self, *args, filename: str = "", **kwargs):
@@ -103,6 +107,7 @@ class BaseDeepQAgent(Agent, ABC):
             update_every=config.getint("update_every"),
             tau=config.getfloat("tau"),
             lr=config.getfloat("lr"),
+            fc_layers=tuple(int(layer) for layer in config.get("fc_layers").split(",")),
         )
 
     def act(self, state: np.ndarray) -> int:
