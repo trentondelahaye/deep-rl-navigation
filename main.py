@@ -27,7 +27,7 @@ def main(unity_env, agent_cfg, no_graphics):
     #   currently not done as to not clutter the click options
     trainer = AgentTrainer(score_window_size=100, score_threshold=13.0)
 
-    command_to_func = build_commands(trainer)
+    command_to_func = build_commands(trainer, agent)
 
     np.random.seed(0)
     random.seed(0)

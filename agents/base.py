@@ -36,6 +36,14 @@ class Agent(ABC):
     ):
         pass
 
+    @abstractmethod
+    def save(self, *args, filename: str = ""):
+        pass
+
+    @abstractmethod
+    def load(self, *args, filename: str = ""):
+        pass
+
     @classmethod
     @abstractmethod
     def from_config(

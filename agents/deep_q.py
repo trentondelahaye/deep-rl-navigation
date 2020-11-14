@@ -1,3 +1,5 @@
+import logging
+import os
 import random
 from abc import ABC
 from configparser import ConfigParser
@@ -14,6 +16,8 @@ from .base import Agent, Experiences
 from .replay_buffers import PrioritisedReplayBuffer, ReplayBuffer
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+log = logging.getLogger()
 
 
 class BaseDeepQAgent(Agent, ABC):
@@ -51,6 +55,41 @@ class BaseDeepQAgent(Agent, ABC):
         self.q_network = QNetwork(self.state_size, self.action_size)
         self.target_q_network = QNetwork(self.state_size, self.action_size)
         self.optimizer = Adam(self.q_network.parameters(), lr=self.lr)
+
+    def save(self, *args, filename: str = ""):
+        if not len(filename):
+            log.warning("Please provide a filename")
+            return
+
+        dir_name = os.path.dirname(__file__)
+        path = os.path.join(dir_name, f"checkpoints/{filename}")
+        state = {
+            "q_network": self.q_network.state_dict(),
+            "target_q_network": self.target_q_network.state_dict(),
+            "optimizer_state": self.optimizer.state_dict(),
+        }
+        torch.save(state, path)
+
+    def load(self, *args, filename: str = ""):
+        if not len(filename):
+            log.warning("Please provide a filename")
+            return
+
+        dir_name = os.path.dirname(__file__)
+        path = os.path.join(dir_name, f"checkpoints/{filename}")
+
+        try:
+            state = torch.load(path)
+        except FileNotFoundError as e:
+            log.warning(f"Unable to load agent state: {e}")
+            return
+
+        try:
+            self.q_network.load_state_dict(state["q_network"])
+            self.target_q_network.load_state_dict(state["target_q_network"])
+            self.optimizer.load_state_dict(state["optimizer_state"])
+        except RuntimeError as e:
+            log.warning(f"Unable to load agent state: {e}")
 
     # noinspection PyArgumentList
     @classmethod

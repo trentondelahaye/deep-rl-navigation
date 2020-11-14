@@ -12,6 +12,12 @@ class RandomAgent(Agent):
     def step(self, *args):
         pass
 
+    def save(self, *args, filename: str = ""):
+        pass
+
+    def load(self, *args, filename: str = ""):
+        pass
+
     @classmethod
     def from_config(cls, config: ConfigParser, state_size: int, action_size: int):
         return cls(state_size, action_size)

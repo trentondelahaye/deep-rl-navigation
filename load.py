@@ -36,16 +36,18 @@ def load_agent(env: UnityEnvironment, agent_cfg: str) -> agents.Agent:
         raise Exception(f"Unrecognised agent {agent_name}")
 
 
-def build_commands(trainer: AgentTrainer) -> Dict[str, Callable]:
+def build_commands(trainer: AgentTrainer, agent: Agent) -> Dict[str, Callable]:
     return {
         "exit": lambda *args: True,
         "watch": watch_episode,
         "train": trainer.train_agent,
         "plot": trainer.plot_progress,
+        "save-agent": agent.save,
+        "load-agent": agent.load,
     }
 
 
-def process_kwarg(key: str, value: str) -> Union[int, float, bool]:
+def process_kwarg(key: str, value: str) -> Union[int, float, bool, str]:
     if value.isdigit():
         return int(value)
     elif value.isnumeric():
@@ -54,6 +56,9 @@ def process_kwarg(key: str, value: str) -> Union[int, float, bool]:
         return True
     elif value in {"False", "false", "F", "f"}:
         return False
+    # Explicit allowed string types
+    elif key in {"filename"}:
+        return value
     raise ValueError(f"Unknown param type {key}={value}")
 
 
