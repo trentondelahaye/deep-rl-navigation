@@ -1,8 +1,8 @@
-# Deep Reinforcement Learning - Banana
+# Deep Reinforcement Learning - Banana Navigation
 
 ## Overview
 
-This project is part of the fulfillment of the Udacity nanodegree. DeepQ reinforment learning agents were programmed to solve a unity based banana-collecting game. Specific emphasis was placed on making it easy for others to run and extend the project, removing repetition from defining agents and making it easy to change hyperparameters in a config file. It also serves as a basis for future Deep RL projects as it has been designed to be extensible and generic to other unity environments by inferring the state and action sizes.
+This project is part of the fulfillment of the Udacity Deep Reinforcement Learning nanodegree. DeepQ reinforcement learning agents were programmed to solve a unity based banana-collecting game. Specific emphasis was placed on making it easy for others to run and extend the project, removing repetition from defining agents and making it easy to change hyperparameters in a config file. It also serves as a basis for future Deep RL projects as it has been designed to be extensible and generic to other unity environments by inferring the state and action sizes.
 
 A gif of a trained DeepQ agent playing the game is shown below.
 ![](report/trained_agent.gif)
@@ -67,7 +67,7 @@ Options:
   --help                      Show this message and exit
 ```
 
-The `unity-env` needs to point to the directory that you placed the environment from Dependencies Step 4 and the `agent-cfg` can point to any config section specified in `agents/configs.cfg`. You can change hyperparameters and configurations of the DeepQ agents in `agents/configs.cfg`. For example 
+The `unity-env` needs to point to the directory that you placed the environment from [Dependencies](#Dependencies) Step 4 and the `agent-cfg` can point to any config section specified in `agents/configs.cfg`. You can change hyperparameters and configurations of the DeepQ agents in `agents/configs.cfg`. For example 
 
 ```
 python main.py --unity-env ./Banana.app --agent-cfg PrioritisedDeepQ
