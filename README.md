@@ -5,7 +5,7 @@
 This project is part of the fulfillment of the Udacity nanodegree. DeepQ reinforment learning agents were programmed to solve a unity based banana-collecting game. Specific emphasis was placed on making it easy for others to run and extend the project, removing repetition from defining agents and making it easy to change hyperparameters in a config file. It also serves as a basis for future Deep RL projects as it has been designed to be extensible and generic to other unity environments by inferring the state and action sizes.
 
 A gif of a trained DeepQ agent playing the game is shown below.
-![](trained_agent.gif)
+![](report/trained_agent.gif)
 
 ## Game description
 

@@ -4,8 +4,8 @@ from typing import Any, Callable, Dict, List
 
 import agents
 from agents import Agent
-from observe import watch_episode
-from train import AgentTrainer
+from env_interface.observe import watch_episode
+from env_interface.train import AgentTrainer
 from unityagents import UnityEnvironment
 
 

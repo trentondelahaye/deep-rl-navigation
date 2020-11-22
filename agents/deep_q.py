@@ -54,10 +54,12 @@ class BaseDeepQAgent(Agent, ABC):
         self.lr = lr
         self.fc_layers = fc_layers
 
-        self.q_network = QNetwork(self.state_size, self.action_size, self.fc_layers)
+        self.q_network = QNetwork(self.state_size, self.action_size, self.fc_layers).to(
+            device
+        )
         self.target_q_network = QNetwork(
             self.state_size, self.action_size, self.fc_layers
-        )
+        ).to(device)
         self.optimizer = Adam(self.q_network.parameters(), lr=self.lr)
 
     def save(self, *args, filename: str = "", **kwargs):
@@ -190,14 +192,18 @@ class PrioritisedDeepQAgent(BaseDeepQAgent):
     def __init__(
         self,
         *args,
+        priority_strength: float = 1.0,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
-        self.memory = PrioritisedReplayBuffer(self.buffer_size, self.batch_size)
+        self.memory = PrioritisedReplayBuffer(
+            self.buffer_size, self.batch_size, priority_strength
+        )
 
     @classmethod
     def from_config(cls, config: ConfigParser, state_size: int, action_size: int):
         base_config_params = cls._get_base_config_params(config)
+        base_config_params["priority_strength"] = config.getfloat("priority_strength")
         return cls(state_size, action_size, **base_config_params)
 
     def step(

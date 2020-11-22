@@ -58,13 +58,14 @@ class ReplayBuffer:
 
 
 class PrioritisedReplayBuffer(ReplayBuffer):
-    def __init__(self, buffer_size: int, batch_size: int):
+    def __init__(self, buffer_size: int, batch_size: int, priority_strength: float):
         super().__init__(buffer_size, batch_size)
+        self.priority_strength = priority_strength
         self.priorities = np.ones((buffer_size,), dtype=np.float32)
         self._last_indices = np.array([])
 
     def _sample(self):
-        probabilities = self.priorities[: len(self.memory)]
+        probabilities = self.priorities[: len(self.memory)] ** self.priority_strength
         probabilities /= probabilities.sum()
         indices = np.random.choice(len(self.memory), self.batch_size, p=probabilities)
         self._last_indices = indices

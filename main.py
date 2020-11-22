@@ -6,8 +6,14 @@ import click
 import numpy as np
 
 import torch
-from load import KwargError, build_commands, build_kwargs, load_agent, load_env
-from train import AgentTrainer
+from env_interface.load import (
+    KwargError,
+    build_commands,
+    build_kwargs,
+    load_agent,
+    load_env,
+)
+from env_interface.train import AgentTrainer
 
 log = logging.getLogger()
 
