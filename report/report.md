@@ -6,7 +6,11 @@ Deep reinforcement learning was applied to the Banana-collecting unity environme
 
 ## Architectures
 
-The base architecture employed was a Double Deep Q agent with an experience replay, with soft updating weights between the network and target network. A [prioritised experience replay](https://arxiv.org/pdf/1511.05952.pdf) with adaptive priority strength was implemented in order for the agent to learn from its larger mistakes more often. 
+The base architecture employed was a Double Deep Q (DDQ) agent with an experience replay, with soft updating weights between the network and target network. A DDQ agent employs two neural networks, named the local and the target network. The purpose of the local network is to select greedy actions for the agent to follow with 1-epsilon chance. The local network is trained by minimising the loss between the predicted state-action pairs and the observed reward plus discounted next state value from the target network. Occasionally, the target network is updated via a soft update, which partially copies the weights of the local network to the target network. The use of two networks is to decouple selection from evaluation, whereas a single network can lead to overestimation of state-action values.
+
+In order to be able to soft copy weights, the same architecture must be used for both networks. Since this was not a visual task, a fully connected network was chosen. Between each hidden layer, a leaky ReLU activation function was chosen to give non-linearity and not suffer vanishing gradients (such as sigmoid activations) or suffer the dying ReLU problem. The number of hidden layers and neurons per layer was left configurable, with default values described below, and the input and output sizes of the networks were inferred from the environment. For training, the Adam optimiser was used with a configurable learning rate.
+
+A [prioritised experience replay](https://arxiv.org/pdf/1511.05952.pdf) with adaptive priority strength was also implemented in order for the agent to learn from its larger mistakes more often, potentially converging faster than uniformly sampling experiences.
 
 ## Hyperparameters
 
@@ -19,7 +23,7 @@ min_epsilon=0.01
 
 were selected s.t. epsilon decays by 0.985 per episode (0.99995 ^ 300). This means epsilon reaches the minimum value of 0.01 after 307 episodes, approx the training time, and begins to make mostly deterministic decisions.
 
-The following parameters were set by using common values found online, where `fc_layers` specifies two hidden layers with size 64 each.
+The following parameters were set by using common values found online, where `fc_layers` specifies two hidden layers with size 64 each as default. This configuration was chosen as a reasonable balance of capturing non-linearity and keeping the network from being overly complex. Changing the network architecture was not explored, however in this framework it would be easy to optimise like any other hyperparameter by just changing the config and not any code.
 
 ```
 buffer_size=8192
